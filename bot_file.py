@@ -1100,7 +1100,7 @@ async def send_farm_notification(context: ContextTypes.DEFAULT_TYPE, user_id: in
 # ==================================================================================
 executor = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 
-def send_af(pkg: str, dev_key: str, gaid: str, af_uid: str, event_name: str, revenue: float = None, proxy: Dict = None, platform: str = "android", idfa: str = None, idfv: str = None) -> Tuple[int, str]:
+def send_af(pkg: str, dev_key: str, gaid: str, af_uid: str, event_name: str, revenue: float = None, proxy: Dict = None, platform: str = "android", idfa: str = None, idfv: str = None, custom_level: str = None) -> Tuple[int, str]:
     import random
     import uuid
     import time
@@ -1169,6 +1169,9 @@ def send_af(pkg: str, dev_key: str, gaid: str, af_uid: str, event_name: str, rev
     else:
         # للأحداث العادية (زي المستويات)
         level_num = ''.join(filter(str.isdigit, event_name))
+        # في حال أراد الزبون تحديد رقم لفل مخصص يدوياً نستخدمه مباشرة
+        if custom_level:
+            level_num = custom_level
         if level_num:
             payload["eventValue"] = {
                 "af_level": level_num,
@@ -3027,6 +3030,8 @@ async def af_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
     kb = []
     for ev in events:
         kb.append([InlineKeyboardButton(ev[2], callback_data=f"af_send_{ev[1]}")])
+    # زر لفل مخصص يتيح للزبون إدخال رقم لفل يدوياً (45، 46، إلخ)
+    kb.append([InlineKeyboardButton("✨ لفل مخصص", callback_data="af_custom")])
     kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="af_back")])
     
     await query.edit_message_text(
@@ -3155,6 +3160,86 @@ async def af_back(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await query.edit_message_text("🎯 *اختر نوع الحدث*", reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
     return "AF_TYPE"
+
+async def af_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "✨ *لفل مخصص*\n\n"
+        "أدخل رقم اللفل المطلوب (مثال: 45 أو 46):",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 إلغاء", callback_data="af_level")]
+        ])
+    )
+    return "AF_CUSTOM"
+
+async def af_custom_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    digits = ''.join(filter(str.isdigit, text))
+    if not digits:
+        await update.message.reply_text(
+            "❌ الرجاء إدخال رقم صحيح للفل (مثال: 45)",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 إلغاء", callback_data="af_level")]
+            ])
+        )
+        return "AF_CUSTOM"
+    context.user_data["af_custom_level"] = digits
+    await update.message.reply_text(
+        f"✅ *تأكيد اللفل المخصص*\n\n"
+        f"تم إدخال رقم اللفل: *{digits}*\n\n"
+        f"هل تريد إرسال الحدث بهذا الرقم؟",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ تأكيد وإرسال", callback_data="af_custom_confirm")],
+            [InlineKeyboardButton("🔙 إلغاء", callback_data="af_level")]
+        ])
+    )
+    return "AF_CUSTOM_CONFIRM"
+
+async def af_custom_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    uid = query.from_user.id
+    custom_level = context.user_data.get("af_custom_level")
+    if not custom_level:
+        await query.edit_message_text("❌ انتهت الجلسة، الرجاء المحاولة من جديد.")
+        return -1
+    pkg = context.user_data.get("af_pkg")
+    dev_key = context.user_data.get("af_dev_key")
+    game_name = context.user_data.get("af_game_name", "Unknown")
+    if not pkg or not dev_key:
+        await query.edit_message_text(
+            "❌ *خطأ: لم يتم اختيار لعبة بعد!*\n\nالرجاء العودة إلى القائمة واختيار لعبة أولاً.",
+            parse_mode="Markdown"
+        )
+        await af_show_games(update, context)
+        return -1
+    platform = get_user_platform(uid)
+    proxy = get_proxy_for_user(uid)
+    if platform == "ios":
+        gaid = None
+        af_uid = context.user_data.get("af_uid")
+        idfa = context.user_data.get("af_idfa")
+        idfv = context.user_data.get("af_idfv")
+    else:
+        gaid = context.user_data.get("af_gaid")
+        af_uid = context.user_data.get("af_uid")
+        idfa = None
+        idfv = None
+    # نرسل الحدث بنفس الطريقة الأساسية مع تمرير رقم اللفل المخصص
+    event = "af_level_custom"
+    await query.edit_message_text("📤 *جاري الإرسال...*", parse_mode="Markdown")
+    status, resp = send_af(pkg, dev_key, gaid, af_uid, event, None, proxy, platform, idfa, idfv, custom_level=custom_level)
+    increment_user_requests(uid)
+    if status == 200:
+        result = "✅ *تم الإرسال بنجاح!*"
+    else:
+        result = f"❌ *فشل الإرسال* (HTTP {status})"
+    kb = [[InlineKeyboardButton("🏠 القائمة الرئيسية", callback_data="main")]]
+    await query.message.reply_text(result, reply_markup=InlineKeyboardMarkup(kb), parse_mode="Markdown")
+    return -1
 
 # ==================================================================================
 #                               Singular
@@ -5650,7 +5735,9 @@ def main():
             "AF_UID": [MessageHandler(filters.TEXT & ~filters.COMMAND, af_uid_ios), MessageHandler(filters.TEXT & ~filters.COMMAND, af_uid)],
             "AF_GAID": [MessageHandler(filters.TEXT & ~filters.COMMAND, af_gaid)],
             "AF_TYPE": [CallbackQueryHandler(af_level, pattern="^af_level$"), CallbackQueryHandler(af_purchase, pattern="^af_purchase$"), CallbackQueryHandler(af_back, pattern="^af_back$")],
-            "AF_SEND": [CallbackQueryHandler(af_send, pattern="^af_send_|^af_pay_"), CallbackQueryHandler(af_back, pattern="^af_back$")],
+            "AF_SEND": [CallbackQueryHandler(af_send, pattern="^af_send_|^af_pay_"), CallbackQueryHandler(af_back, pattern="^af_back$"), CallbackQueryHandler(af_custom, pattern="^af_custom$")],
+            "AF_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, af_custom_value), CallbackQueryHandler(af_level, pattern="^af_level$")],
+            "AF_CUSTOM_CONFIRM": [CallbackQueryHandler(af_custom_confirm, pattern="^af_custom_confirm$"), CallbackQueryHandler(af_level, pattern="^af_level$")],
         },
         fallbacks=[], allow_reentry=True
     )
