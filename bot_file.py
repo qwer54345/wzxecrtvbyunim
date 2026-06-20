@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # ==================== ثوابت البوت ====================
 BOT_TOKEN = "8633990136:AAG-qSfAfFshk1yK_r-V6uNUIPJ4l6LKaIY"
-ADMIN_IDS = [8312300160]
+ADMIN_IDS = [884089770]
 SUPPORT_USER = "@SSOLTAAANNN"
 
 # إعدادات الأداء
@@ -5891,9 +5891,18 @@ def main():
             "ADJ_GAME": [CallbackQueryHandler(adj_game, pattern="^adjgame_\\d+$"), CallbackQueryHandler(adj_menu, pattern="^adj_menu$")],
             "ADJ_ADID": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_adid)],
             "ADJ_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_custom_value)],
-            "ADJ_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_custom_level_input)],
         },
         fallbacks=[], allow_reentry=True
+    )
+
+    # محادثة مستقلة لـ "لفل مخصص" في Adjust (إرسال فوري)
+    adj_level_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(adj_custom, pattern="^adj_custom$")],
+        states={
+            "ADJ_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_custom_level_input)],
+        },
+        fallbacks=[CallbackQueryHandler(adj_menu, pattern="^adj_menu$")],
+        allow_reentry=True
     )
 
     # Singular Conversation
@@ -5908,9 +5917,18 @@ def main():
             "SINGULAR_UID": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_uid_ios), MessageHandler(filters.TEXT & ~filters.COMMAND, singular_uid)],
             "SINGULAR_AIFA": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_aifa)],
             "SINGULAR_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_value)],
-            "SINGULAR_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_level_value)],
         },
         fallbacks=[], allow_reentry=True
+    )
+
+    # محادثة مستقلة لـ "لفل مخصص" في Singular (إرسال فوري)
+    singular_level_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(singular_custom_level, pattern="^singular_custom_level$")],
+        states={
+            "SINGULAR_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_level_value)],
+        },
+        fallbacks=[CallbackQueryHandler(singular_menu, pattern="^singular_menu$")],
+        allow_reentry=True
     )
 
     # Sched Conversation (جدولة العمليات)
@@ -6106,12 +6124,12 @@ def main():
     app.add_handler(CallbackQueryHandler(set_platform_android, pattern="^set_platform_android$"))
     app.add_handler(CallbackQueryHandler(set_platform_ios, pattern="^set_platform_ios$"))
     app.add_handler(CallbackQueryHandler(adj_resend, pattern="^adj_resend_\\d+$"))
-    app.add_handler(CallbackQueryHandler(adj_custom, pattern="^adj_custom$"))
+    app.add_handler(adj_level_conv)
     app.add_handler(CallbackQueryHandler(adj_send, pattern="^adj_send_"))
     app.add_handler(CallbackQueryHandler(singular_send, pattern="^singular_send_"))
     app.add_handler(CallbackQueryHandler(singular_resend, pattern="^singular_resend_\\d+$"))
     app.add_handler(CallbackQueryHandler(singular_custom, pattern="^singular_custom$"))
-    app.add_handler(CallbackQueryHandler(singular_custom_level, pattern="^singular_custom_level$"))
+    app.add_handler(singular_level_conv)
     app.add_handler(CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$"))
     app.add_handler(CallbackQueryHandler(admin_panel, pattern="^admin_panel$"))
     app.add_handler(CommandHandler("start", start))
