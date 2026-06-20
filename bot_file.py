@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # ==================== ثوابت البوت ====================
 BOT_TOKEN = "8633990136:AAG-qSfAfFshk1yK_r-V6uNUIPJ4l6LKaIY"
-ADMIN_IDS = [8312300160]
+ADMIN_IDS = [884089770]
 SUPPORT_USER = "@SSOLTAAANNN"
 
 # إعدادات الأداء
@@ -6097,6 +6097,10 @@ def main():
     )
 
     # إضافة جميع المعالجات
+    # محادثات "لفل مخصص" أولاً بأولوية أعلى من المحادثات الرئيسية
+    # حتى تلتقط رسائل رقم اللفل قبل أي conversation handler آخر
+    app.add_handler(adj_level_conv)
+    app.add_handler(singular_level_conv)
     app.add_handler(proxy_conv)
     app.add_handler(af_conv)
     app.add_handler(adj_conv)
@@ -6124,12 +6128,10 @@ def main():
     app.add_handler(CallbackQueryHandler(set_platform_android, pattern="^set_platform_android$"))
     app.add_handler(CallbackQueryHandler(set_platform_ios, pattern="^set_platform_ios$"))
     app.add_handler(CallbackQueryHandler(adj_resend, pattern="^adj_resend_\\d+$"))
-    app.add_handler(adj_level_conv)
     app.add_handler(CallbackQueryHandler(adj_send, pattern="^adj_send_"))
     app.add_handler(CallbackQueryHandler(singular_send, pattern="^singular_send_"))
     app.add_handler(CallbackQueryHandler(singular_resend, pattern="^singular_resend_\\d+$"))
     app.add_handler(CallbackQueryHandler(singular_custom, pattern="^singular_custom$"))
-    app.add_handler(singular_level_conv)
     app.add_handler(CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$"))
     app.add_handler(CallbackQueryHandler(admin_panel, pattern="^admin_panel$"))
     app.add_handler(CommandHandler("start", start))
