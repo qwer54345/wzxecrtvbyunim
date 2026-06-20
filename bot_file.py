@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # ==================== ثوابت البوت ====================
 BOT_TOKEN = "8633990136:AAG-qSfAfFshk1yK_r-V6uNUIPJ4l6LKaIY"
-ADMIN_IDS = [8312300160]
+ADMIN_IDS = [884089770]
 SUPPORT_USER = "@SSOLTAAANNN"
 
 # إعدادات الأداء
@@ -3509,9 +3509,11 @@ async def singular_custom_value(update: Update, context: ContextTypes.DEFAULT_TY
 async def singular_custom_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    # نخزن علم يدل أن المستخدم بانتظار إدخال رقم لفل مخصص لـ Singular
+    context.user_data["awaiting_sg_level"] = True
     await query.edit_message_text(
         "✨ *لفل مخصص*\n\n"
-        "أدخل رقم اللفل المطلوب (مثال: 45 أو 46):",
+        "أدخل رقم اللفل المطلوب (مثال: 45 أو 46) وسيُرسل الحدث فوراً:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
@@ -3531,17 +3533,36 @@ async def singular_custom_level_value(update: Update, context: ContextTypes.DEFA
         )
         return "SINGULAR_CUSTOM_LEVEL"
     context.user_data["sg_custom_level"] = digits
+    pkg = context.user_data["sg_package"]
+    app_key = context.user_data["sg_app_key"]
+    proxy = get_proxy_for_user(update.effective_user.id)
+    platform = context.user_data.get("sg_platform", "android")
+    event_name = "level_custom"
+    await update.message.reply_text("📤 *جاري الإرسال فوراً...*", parse_mode="Markdown")
+    if platform == "ios":
+        idfa = context.user_data.get("sg_idfa")
+        idfv = context.user_data.get("sg_idfv")
+        uid = context.user_data.get("sg_uid")
+        status, resp = send_singular(event_name, None, uid, pkg, app_key, digits, proxy, "ios", idfa, idfv)
+    else:
+        aifa = context.user_data.get("sg_aifa")
+        uid = context.user_data.get("sg_uid")
+        status, resp = send_singular(event_name, aifa, uid, pkg, app_key, digits, proxy, "android")
+    increment_user_requests(update.effective_user.id)
+    if status == 200:
+        result = "✅ *تم الإرسال بنجاح!*"
+    else:
+        result = f"❌ *فشل الإرسال* (HTTP {status})"
+    kb = [
+        [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"singular_resend_{context.user_data['sg_game_id']}")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")]
+    ]
     await update.message.reply_text(
-        f"✅ *تأكيد اللفل المخصص*\n\n"
-        f"تم إدخال رقم اللفل: *{digits}*\n\n"
-        f"هل تريد إرسال الحدث بهذا الرقم؟",
-        parse_mode="Markdown",
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("✅ تأكيد وإرسال", callback_data="sg_custom_level_confirm")],
-            [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
-        ])
+        f"{result}\n📝 *الحدث:* {event_name}\n🔢 *رقم اللفل:* {digits}\n🎮 *اللعبة:* {context.user_data['sg_game_name']}",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
     )
-    return "SINGULAR_CUSTOM_LEVEL_CONFIRM"
+    return -1
 
 async def singular_custom_level_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -3769,14 +3790,50 @@ async def adj_resend(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def adj_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    context.user_data["awaiting_adj_level"] = True
     await query.edit_message_text(
-        "✨ *حدث مخصص*\n\n📝 *أدخل رمز/توكن الحدث (event token):*\nمثال: `abc123token`",
+        "✨ *لفل مخصص*\n\n"
+        "أدخل رقم اللفل المطلوب (مثال: 45 أو 46) وسيُرسل الحدث فوراً:",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 إلغاء", callback_data=f"adj_resend_{context.user_data.get('adj_game_id', '')}")]
         ])
     )
-    return "ADJ_CUSTOM"
+    return "ADJ_CUSTOM_LEVEL"
+
+async def adj_custom_level_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    digits = ''.join(filter(str.isdigit, text))
+    if not digits:
+        await update.message.reply_text(
+            "❌ الرجاء إدخال رقم صحيح للفل (مثال: 45)",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 إلغاء", callback_data=f"adj_resend_{context.user_data.get('adj_game_id', '')}")]
+            ])
+        )
+        return "ADJ_CUSTOM_LEVEL"
+    context.user_data.pop("awaiting_adj_level", None)
+    event_token = digits
+    app_token = context.user_data["adj_app_token"]
+    gps = context.user_data["adj_gps"]
+    proxy = get_proxy_for_user(update.effective_user.id)
+    await update.message.reply_text("📤 *جاري الإرسال فوراً...*", parse_mode="Markdown")
+    status, resp = send_adj(app_token, event_token, gps, proxy)
+    increment_user_requests(update.effective_user.id)
+    if status == 200:
+        result = "✅ *تم الإرسال بنجاح!*"
+    else:
+        result = f"❌ *فشل الإرسال* (HTTP {status})"
+    kb = [
+        [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"adj_resend_{context.user_data['adj_game_id']}")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="adj_menu")]
+    ]
+    await update.message.reply_text(
+        f"{result}\n🔢 *رقم اللفل:* {digits}\n🎮 *اللعبة:* {context.user_data['adj_game_name']}",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+    return -1
 
 async def adj_custom_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_token = update.message.text.strip()
@@ -5834,6 +5891,7 @@ def main():
             "ADJ_GAME": [CallbackQueryHandler(adj_game, pattern="^adjgame_\\d+$"), CallbackQueryHandler(adj_menu, pattern="^adj_menu$")],
             "ADJ_ADID": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_adid)],
             "ADJ_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_custom_value)],
+            "ADJ_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, adj_custom_level_input)],
         },
         fallbacks=[], allow_reentry=True
     )
@@ -5851,7 +5909,6 @@ def main():
             "SINGULAR_AIFA": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_aifa)],
             "SINGULAR_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_value)],
             "SINGULAR_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_level_value)],
-            "SINGULAR_CUSTOM_LEVEL_CONFIRM": [CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$")],
         },
         fallbacks=[], allow_reentry=True
     )
