@@ -3427,10 +3427,12 @@ async def singular_resend(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     
     game_id = int(query.data.replace("singular_resend_", ""))
-    game = c_main.execute("SELECT display_name FROM games_singular WHERE id = ?", (game_id,)).fetchone()
+    game = c_main.execute("SELECT id, name, display_name, package, app_key, emoji FROM games_singular WHERE id = ?", (game_id,)).fetchone()
     
     context.user_data["sg_game_id"] = game_id
-    context.user_data["sg_game_name"] = game[0]
+    context.user_data["sg_game_name"] = game[2]
+    context.user_data["sg_package"] = game[3]
+    context.user_data["sg_app_key"] = game[4]
     
     events = get_singular_events(game_id)
     
@@ -3524,41 +3526,49 @@ async def singular_custom_level(update: Update, context: ContextTypes.DEFAULT_TY
 async def singular_custom_level_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     digits = ''.join(filter(str.isdigit, text))
+    game_id = context.user_data.get("sg_game_id", "")
+    cancel_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{game_id}")]
+    ])
     if not digits:
         await update.message.reply_text(
             "❌ الرجاء إدخال رقم صحيح للفل (مثال: 45)",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
-            ])
+            reply_markup=cancel_kb
         )
         return "SINGULAR_CUSTOM_LEVEL"
-    context.user_data["sg_custom_level"] = digits
-    pkg = context.user_data["sg_package"]
-    app_key = context.user_data["sg_app_key"]
-    proxy = get_proxy_for_user(update.effective_user.id)
-    platform = context.user_data.get("sg_platform", "android")
-    event_name = "level_custom"
-    await update.message.reply_text("📤 *جاري الإرسال فوراً...*", parse_mode="Markdown")
-    if platform == "ios":
-        idfa = context.user_data.get("sg_idfa")
-        idfv = context.user_data.get("sg_idfv")
-        uid = context.user_data.get("sg_uid")
-        status, resp = send_singular(event_name, None, uid, pkg, app_key, digits, proxy, "ios", idfa, idfv)
+    pkg = context.user_data.get("sg_package")
+    app_key = context.user_data.get("sg_app_key")
+    aifa = context.user_data.get("sg_aifa", "")
+    uid = context.user_data.get("sg_uid", "")
+    game_name = context.user_data.get("sg_game_name", "")
+    if not pkg:
+        await update.message.reply_text("❌ خطأ: Package Name غير موجود، الرجاء إعادة اختيار اللعبة", reply_markup=cancel_kb)
+        return -1
+    if not app_key:
+        await update.message.reply_text("❌ خطأ: App Key غير موجود، الرجاء إعادة اختيار اللعبة", reply_markup=cancel_kb)
+        return -1
+    if not aifa:
+        await update.message.reply_text("❌ خطأ: GAID/AIFA غير موجود، الرجاء إعادة اختيار اللعبة وإدخال GAID صحيح", reply_markup=cancel_kb)
+        return -1
+    events = get_singular_events(game_id) if game_id else []
+    if events:
+        event_name = events[0][1]
     else:
-        aifa = context.user_data.get("sg_aifa")
-        uid = context.user_data.get("sg_uid")
-        status, resp = send_singular(event_name, aifa, uid, pkg, app_key, digits, proxy, "android")
+        event_name = "level"
+    proxy = get_proxy_for_user(update.effective_user.id)
+    await update.message.reply_text("📤 *جاري الإرسال فوراً...*", parse_mode="Markdown")
+    status, resp = send_singular(event_name, aifa, uid, pkg, app_key, digits, proxy, "android")
     increment_user_requests(update.effective_user.id)
     if status == 200:
         result = "✅ *تم الإرسال بنجاح!*"
     else:
-        result = f"❌ *فشل الإرسال* (HTTP {status})"
+        result = f"❌ *فشل الإرسال* (HTTP {status})\n`{resp[:100]}`"
     kb = [
-        [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"singular_resend_{context.user_data['sg_game_id']}")],
+        [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"singular_resend_{game_id}")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")]
     ]
     await update.message.reply_text(
-        f"{result}\n📝 *الحدث:* {event_name}\n🔢 *رقم اللفل:* {digits}\n🎮 *اللعبة:* {context.user_data['sg_game_name']}",
+        f"{result}\n📝 *الحدث:* `{event_name}`\n🔢 *رقم اللفل:* {digits}\n🎮 *اللعبة:* {game_name}",
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
