@@ -3364,6 +3364,7 @@ async def show_singular_events(update, context):
         kb.append([InlineKeyboardButton(f"🌟 {ev[2]}", callback_data=f"singular_send_{ev[1]}")])
     
     kb.append([InlineKeyboardButton("✨ حدث مخصص", callback_data="singular_custom")])
+    kb.append([InlineKeyboardButton("🔢 لفل مخصص", callback_data="singular_custom_level")])
     kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")])
     
     msg = update.message if update.message else update.callback_query.message
@@ -3391,6 +3392,9 @@ def send_singular(event_name, aifa, uid, package, app_key, level=None, proxy=Non
         "utime": int(time.time()),  # الوقت الحالي بالثواني
         "n": event_name         # اسم الحدث
     }
+    # إضافة رقم اللفل إن وُجد (للأحداث المخصصة)
+    if level:
+        params["level"] = level
     
     # تنظيف المعاملات الفارغة
     params = {k: v for k, v in params.items() if v}
@@ -3444,6 +3448,7 @@ async def singular_resend(update: Update, context: ContextTypes.DEFAULT_TYPE):
         kb.append([InlineKeyboardButton(f"🌟 {ev[2]}", callback_data=f"singular_send_{ev[1]}")])
     
     kb.append([InlineKeyboardButton("✨ حدث مخصص", callback_data="singular_custom")])
+    kb.append([InlineKeyboardButton("🔢 لفل مخصص", callback_data="singular_custom_level")])
     kb.append([InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")])
     
     await query.edit_message_text(
@@ -3464,14 +3469,14 @@ async def singular_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def singular_custom_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
     event_name = update.message.text.strip()
-    
+
     pkg = context.user_data["sg_package"]
     app_key = context.user_data["sg_app_key"]
     proxy = get_proxy_for_user(update.effective_user.id)
     platform = context.user_data.get("sg_platform", "android")
-    
+
     await update.message.reply_text("📤 *جاري الإرسال...*", parse_mode="Markdown")
-    
+
     if platform == "ios":
         idfa = context.user_data.get("sg_idfa")
         idfv = context.user_data.get("sg_idfv")
@@ -3481,21 +3486,96 @@ async def singular_custom_value(update: Update, context: ContextTypes.DEFAULT_TY
         aifa = context.user_data.get("sg_aifa")
         uid = context.user_data.get("sg_uid")
         status, resp = send_singular(event_name, aifa, uid, pkg, app_key, None, proxy, "android")
-    
+
     increment_user_requests(update.effective_user.id)
-    
+
     if status == 200:
         result = "✅ *تم الإرسال بنجاح!*"
     else:
         result = f"❌ *فشل الإرسال* (HTTP {status})"
-    
+
     kb = [
         [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"singular_resend_{context.user_data['sg_game_id']}")],
         [InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")]
     ]
-    
+
     await update.message.reply_text(
         f"{result}\n📝 *الحدث:* {event_name}\n🎮 *اللعبة:* {context.user_data['sg_game_name']}",
+        reply_markup=InlineKeyboardMarkup(kb),
+        parse_mode="Markdown"
+    )
+    return -1
+
+async def singular_custom_level(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await query.edit_message_text(
+        "✨ *لفل مخصص*\n\n"
+        "أدخل رقم اللفل المطلوب (مثال: 45 أو 46):",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
+        ])
+    )
+    return "SINGULAR_CUSTOM_LEVEL"
+
+async def singular_custom_level_value(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+    digits = ''.join(filter(str.isdigit, text))
+    if not digits:
+        await update.message.reply_text(
+            "❌ الرجاء إدخال رقم صحيح للفل (مثال: 45)",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
+            ])
+        )
+        return "SINGULAR_CUSTOM_LEVEL"
+    context.user_data["sg_custom_level"] = digits
+    await update.message.reply_text(
+        f"✅ *تأكيد اللفل المخصص*\n\n"
+        f"تم إدخال رقم اللفل: *{digits}*\n\n"
+        f"هل تريد إرسال الحدث بهذا الرقم؟",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("✅ تأكيد وإرسال", callback_data="sg_custom_level_confirm")],
+            [InlineKeyboardButton("🔙 إلغاء", callback_data=f"singular_resend_{context.user_data.get('sg_game_id', '')}")]
+        ])
+    )
+    return "SINGULAR_CUSTOM_LEVEL_CONFIRM"
+
+async def singular_custom_level_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    custom_level = context.user_data.get("sg_custom_level")
+    if not custom_level:
+        await query.edit_message_text("❌ انتهت الجلسة، الرجاء المحاولة من جديد.")
+        return -1
+    pkg = context.user_data["sg_package"]
+    app_key = context.user_data["sg_app_key"]
+    proxy = get_proxy_for_user(query.from_user.id)
+    platform = context.user_data.get("sg_platform", "android")
+    event_name = "level_custom"
+    await query.message.reply_text("📤 *جاري الإرسال...*", parse_mode="Markdown")
+    if platform == "ios":
+        idfa = context.user_data.get("sg_idfa")
+        idfv = context.user_data.get("sg_idfv")
+        uid = context.user_data.get("sg_uid")
+        status, resp = send_singular(event_name, None, uid, pkg, app_key, custom_level, proxy, "ios", idfa, idfv)
+    else:
+        aifa = context.user_data.get("sg_aifa")
+        uid = context.user_data.get("sg_uid")
+        status, resp = send_singular(event_name, aifa, uid, pkg, app_key, custom_level, proxy, "android")
+    increment_user_requests(query.from_user.id)
+    if status == 200:
+        result = "✅ *تم الإرسال بنجاح!*"
+    else:
+        result = f"❌ *فشل الإرسال* (HTTP {status})"
+    kb = [
+        [InlineKeyboardButton("🎯 حدث اخر", callback_data=f"singular_resend_{context.user_data['sg_game_id']}")],
+        [InlineKeyboardButton("🔙 رجوع", callback_data="singular_menu")]
+    ]
+    await query.message.reply_text(
+        f"{result}\n📝 *الحدث:* {event_name}\n🔢 *رقم اللفل:* {custom_level}\n🎮 *اللعبة:* {context.user_data['sg_game_name']}",
         reply_markup=InlineKeyboardMarkup(kb),
         parse_mode="Markdown"
     )
@@ -3690,8 +3770,11 @@ async def adj_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     await query.edit_message_text(
-        "معطل ",
-        parse_mode="Markdown"
+        "✨ *حدث مخصص*\n\n📝 *أدخل رمز/توكن الحدث (event token):*\nمثال: `abc123token`",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 إلغاء", callback_data=f"adj_resend_{context.user_data.get('adj_game_id', '')}")]
+        ])
     )
     return "ADJ_CUSTOM"
 
@@ -5767,6 +5850,8 @@ def main():
             "SINGULAR_UID": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_uid_ios), MessageHandler(filters.TEXT & ~filters.COMMAND, singular_uid)],
             "SINGULAR_AIFA": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_aifa)],
             "SINGULAR_CUSTOM": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_value)],
+            "SINGULAR_CUSTOM_LEVEL": [MessageHandler(filters.TEXT & ~filters.COMMAND, singular_custom_level_value)],
+            "SINGULAR_CUSTOM_LEVEL_CONFIRM": [CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$")],
         },
         fallbacks=[], allow_reentry=True
     )
@@ -5969,6 +6054,8 @@ def main():
     app.add_handler(CallbackQueryHandler(singular_send, pattern="^singular_send_"))
     app.add_handler(CallbackQueryHandler(singular_resend, pattern="^singular_resend_\\d+$"))
     app.add_handler(CallbackQueryHandler(singular_custom, pattern="^singular_custom$"))
+    app.add_handler(CallbackQueryHandler(singular_custom_level, pattern="^singular_custom_level$"))
+    app.add_handler(CallbackQueryHandler(singular_custom_level_confirm, pattern="^sg_custom_level_confirm$"))
     app.add_handler(CallbackQueryHandler(admin_panel, pattern="^admin_panel$"))
     app.add_handler(CommandHandler("start", start))
 
