@@ -3555,9 +3555,18 @@ async def singular_custom_level_value(update: Update, context: ContextTypes.DEFA
         event_name = events[0][1]
     else:
         event_name = "level"
+
+    # إذا كان اسم الحدث قالباً ينتهي بـ _ نُضيف رقم اللفل مباشرةً إليه
+    # بنفس طريقة باقي الأحداث (مثال: mn_level_ + 45 = mn_level_45)
+    if event_name.endswith("_"):
+        event_name = event_name + digits
+        level_param = None
+    else:
+        level_param = digits
+
     proxy = get_proxy_for_user(update.effective_user.id)
     await update.message.reply_text("📤 *جاري الإرسال فوراً...*", parse_mode="Markdown")
-    status, resp = send_singular(event_name, aifa, uid, pkg, app_key, digits, proxy, "android")
+    status, resp = send_singular(event_name, aifa, uid, pkg, app_key, level_param, proxy, "android")
     increment_user_requests(update.effective_user.id)
     if status == 200:
         result = "✅ *تم الإرسال بنجاح!*"
