@@ -3556,12 +3556,17 @@ async def singular_custom_level_value(update: Update, context: ContextTypes.DEFA
     else:
         event_name = "level"
 
-    # إذا كان اسم الحدث قالباً ينتهي بـ _ نُضيف رقم اللفل مباشرةً إليه
-    # بنفس طريقة باقي الأحداث (مثال: mn_level_ + 45 = mn_level_45)
+    # بناء اسم الحدث الصحيح بناءً على شكل القالب المخزّن
     if event_name.endswith("_"):
+        # قالب ينتهي بـ _: mn_level_ + 18 = mn_level_18
         event_name = event_name + digits
         level_param = None
+    elif re.search(r'\d+$', event_name):
+        # اسم الحدث ينتهي برقم: "Reach Level 3" → "Reach Level 18"
+        event_name = re.sub(r'\d+$', digits, event_name)
+        level_param = None
     else:
+        # اسم حدث ثابت بدون رقم: sng_level_achieved → يُرسل الرقم كمعامل
         level_param = digits
 
     proxy = get_proxy_for_user(update.effective_user.id)
