@@ -598,8 +598,6 @@ def add_singular_events():
                        (maf[0], "cashout_s2s", "📱 First Cashout", "cashout"))
 c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
                    (maf[0], "3_cashout_s2s", "📱 3 Cashouts", "cashout"))
-    c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
-                   (maf[0], "7_cashout_s2s", "📱 7 Cashouts", "cashout"))
 
 add_singular_events()
 
