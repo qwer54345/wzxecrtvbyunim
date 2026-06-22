@@ -295,6 +295,7 @@ AF_GAMES = [
     ("travel_town", "✈️ Travel Town", "io.randomco.travel", "wizhvjciCuaDbAaR8KpZLn", "✈️"),
     ("goodville", "🏡 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏡"),
     ("game_of_vampires", "🧛 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🧛"),
+    ("myapp_free", "📱 MyAppFree", "myappfreesrl.com.myappfree", "loyaltydigital_10c54e02", "📱"),
 ]
 
 for game in AF_GAMES:
@@ -434,6 +435,11 @@ def add_af_events():
     if gov:
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
                        (gov[0], "power_350w", "🧛 Power 350w", "power", 0))
+        # MyAppFree
+    maf = c_main.execute("SELECT id FROM games_af WHERE name = 'myappfree'").fetchone()
+    if maf:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (maf[0], "first_cashout_s2s", "📱 First Cashout", "cashout", 0))
 
 add_af_events()
 
