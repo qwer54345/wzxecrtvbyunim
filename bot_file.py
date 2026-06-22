@@ -3228,10 +3228,21 @@ async def af_custom_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         af_uid = context.user_data.get("af_uid")
         idfa = None
         idfv = None
-    # نرسل الحدث بنفس الطريقة الأساسية مع تمرير رقم اللفل المخصص
-    event = "af_level_custom"
+    # بناء اسم الحدث الحقيقي للعبة مع استبدال رقم اللفل بالرقم المُدخل
+    # بنفس الطريقة الأساسية تماماً
+    game_id = context.user_data.get("af_game_id")
+    events = get_af_events(game_id, purchase_only=False) if game_id else []
+    if events:
+        base_event = events[0][1]  # اسم أول حدث غير شرائي للعبة
+        if re.search(r'\d+', base_event):
+            # استبدل كل الأرقام في اسم الحدث بالرقم المُدخل
+            event = re.sub(r'\d+', custom_level, base_event)
+        else:
+            event = f"af_level_{custom_level}_achieved"
+    else:
+        event = f"af_level_{custom_level}_achieved"
     await query.edit_message_text("📤 *جاري الإرسال...*", parse_mode="Markdown")
-    status, resp = send_af(pkg, dev_key, gaid, af_uid, event, None, proxy, platform, idfa, idfv, custom_level=custom_level)
+    status, resp = send_af(pkg, dev_key, gaid, af_uid, event, None, proxy, platform, idfa, idfv)
     increment_user_requests(uid)
     if status == 200:
         result = "✅ *تم الإرسال بنجاح!*"
