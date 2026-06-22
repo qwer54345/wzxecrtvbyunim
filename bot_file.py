@@ -595,11 +595,7 @@ def add_singular_events():
     maf = c_main.execute("SELECT id FROM games_singular WHERE name = 'myappfree'").fetchone()
     if maf:
         c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
-                       (maf[0], "first_cashout_s2s", "📱 First Cashout", "cashout"))
-        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
-                   (maf[0], "third_cashout_s2s", "📱 3 Cashouts", "cashout"))
-    c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
-                   (maf[0], "seventh_cashout_s2s", "📱 7 Cashouts", "cashout"))
+                       (maf[0], "cashout_s2s", "📱 First Cashout", "cashout"))
 
 add_singular_events()
 
