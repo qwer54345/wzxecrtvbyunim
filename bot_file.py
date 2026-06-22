@@ -289,6 +289,7 @@ AF_GAMES = [
     ("nations_of_darkness", "🎲 Nations of Darkness", "com.allstarunion.nod", "x88hdqNmd8vALRmRMhgY4Q", "🎲"),
     ("hero_wars", "🎲 Hero Wars", "com.nexters.herowars", "MGPcVAUzD9XqbwAY6q7KMf", "🎲"),
     ("zombie_waves", "🧟 Zombie Waves", "com.ddup.zombiewaves.zw", "wiQMRPvGaAYTGBCgM5yN9N", "🧟"),
+    ("Coin_Master_Board_Adventure", "⚔️ Coin Master - Board Adventure", "com.moonactive.cmboard", "H3KjoCRVTiVgA5mWSAHtCe", "⚔️"),
 ]
 
 for game in AF_GAMES:
@@ -302,6 +303,12 @@ def add_af_events():
                        (dd[0], "af_kingdom_3_restored", "🏰 Kingdom 3", "kingdom", 0))
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
                        (dd[0], "af_kingdom_18_restored", "🏰 Kingdom 18", "kingdom", 0))
+
+    # Coin Master - Board Adventure
+    dd = c_main.execute("SELECT id FROM games_af WHERE name = 'Coin_Master_Board_Adventure'").fetchone()
+    if dd:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (dd[0], "village_3_complete", "⚔️ village 3", "village", 0))
     
     # Domino Dreams
     dom = c_main.execute("SELECT id FROM games_af WHERE name = 'domino_dreams'").fetchone()
