@@ -295,7 +295,6 @@ AF_GAMES = [
     ("travel_town", "✈️ Travel Town", "io.randomco.travel", "wizhvjciCuaDbAaR8KpZLn", "✈️"),
     ("goodville", "🏡 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏡"),
     ("game_of_vampires", "🧛 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🧛"),
-    ("myapp_free", "📱 MyAppFree", "myappfreesrl.com.myappfree", "loyaltydigital_10c54e02", "📱"),
 ]
 
 for game in AF_GAMES:
@@ -436,13 +435,6 @@ def add_af_events():
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
                        (gov[0], "power_350w", "🧛 Power 350w", "power", 0))
         
-        # MyAppFree
-    maf = c_main.execute("SELECT id FROM games_af WHERE name = 'myappfree'").fetchone()
-    if maf:
-        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
-                       (maf[0], "first_cashout_s2s", "📱 First Cashout", "cashout", 0))
-        
-
 add_af_events()
 
 # ==================== ألعاب Singular ====================
@@ -468,6 +460,7 @@ SINGULAR_GAMES = [
     ("word_madness", "📖 Word Madness", "com.word.madness", "brain_games_a7dde873", "📖"),
     ("word_wise", "📖 Word Wise", "com.playx.wordwise.crossword", "myappfree_spa_38e49215", "📖"),
     ("eatventure", "🍔 Eatventure", "com.hwqgrhhjfd.idlefastfood", "lessmore_edff53fc", "🍔"),
+    ("myappfree", "📱 MyAppFree", "myappfreesrl.com.myappfree", "loyaltydigital_10c54e02", "📱"),
 ]
 
 for game in SINGULAR_GAMES:
@@ -597,6 +590,16 @@ def add_singular_events():
                        (ev[0], "restaurant_unlocked", "🍔 restaurant_unlocked", "unlock"))
         c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
                        (ev[0], "lm_restaurant_completion", "🍔 lm_restaurant_completion", "complete"))
+
+    # MyAppFree
+    maf = c_main.execute("SELECT id FROM games_singular WHERE name = 'myappfree'").fetchone()
+    if maf:
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                       (maf[0], "first_cashout_s2s", "📱 First Cashout", "cashout"))
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                   (maf[0], "third_cashout_s2s", "📱 3 Cashouts", "cashout"))
+    c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                   (maf[0], "seventh_cashout_s2s", "📱 7 Cashouts", "cashout"))
 
 add_singular_events()
 
