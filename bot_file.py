@@ -290,6 +290,11 @@ AF_GAMES = [
     ("hero_wars", "🎲 Hero Wars", "com.nexters.herowars", "MGPcVAUzD9XqbwAY6q7KMf", "🎲"),
     ("zombie_waves", "🧟 Zombie Waves", "com.ddup.zombiewaves.zw", "wiQMRPvGaAYTGBCgM5yN9N", "🧟"),
     ("Coin_Master_Board_Adventure", "⚔️ Coin Master - Board Adventure", "com.moonactive.cmboard", "H3KjoCRVTiVgA5mWSAHtCe", "⚔️"),
+    ("royal_farm", "🚜 Royal Farm", "com.ugo.play.free.farm.valley", "ktoVPgaiGM9AZhM5BFycVB", "🚜"),
+    ("idle_zombie_miner", "🧟 Idle Zombie Miner", "com.zombie.idleminertycoon", "Ko6tMi9uqZbPBgJsKCuAUd", "🧟"),
+    ("travel_town", "✈️ Travel Town", "io.randomco.travel", "wizhvjciCuaDbAaR8KpZLn", "✈️"),
+    ("goodville", "🏡 Goodville", "com.goodville.goodgame", "MqrvZSKujKBZ4byRDHm5a4", "🏡"),
+    ("game_of_vampires", "🧛 Game of Vampires", "com.mechanist.vampire.aos", "ZCD7jvH8i9zt9ewanppetD", "🧛"),
 ]
 
 for game in AF_GAMES:
@@ -400,6 +405,35 @@ def add_af_events():
     if zw:
         c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
                        (zw[0], "af_zw_lv5", "🧟 Level 5", "level", 0))
+        # Royal Farm
+    rf = c_main.execute("SELECT id FROM games_af WHERE name = 'royal_farm'").fetchone()
+    if rf:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (rf[0], "af_level_up_10", "🏆 Level 10", "level", 0))
+
+    # Idle Zombie Miner
+    izm = c_main.execute("SELECT id FROM games_af WHERE name = 'idle_zombie_miner'").fetchone()
+    if izm:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (izm[0], "mine_2_reached", "⛏️ Mine 2", "mine", 0))
+
+    # Travel Town
+    tt = c_main.execute("SELECT id FROM games_af WHERE name = 'travel_town'").fetchone()
+    if tt:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (tt[0], "level_completed_1", "🏆 Level 1", "level", 0))
+
+    # Goodville
+    gv = c_main.execute("SELECT id FROM games_af WHERE name = 'goodville'").fetchone()
+    if gv:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (gv[0], "Start_Exp_1", "🏡 Start Exp 1", "exp", 0))
+
+    # Game of Vampires
+    gov = c_main.execute("SELECT id FROM games_af WHERE name = 'game_of_vampires'").fetchone()
+    if gov:
+        c_main.execute("INSERT OR IGNORE INTO events_af (game_id, event_name, display_name, event_type, is_purchase) VALUES (?, ?, ?, ?, ?)", 
+                       (gov[0], "power_350w", "🧛 Power 350w", "power", 0))
 
 add_af_events()
 
