@@ -461,6 +461,7 @@ SINGULAR_GAMES = [
     ("word_wise", "📖 Word Wise", "com.playx.wordwise.crossword", "myappfree_spa_38e49215", "📖"),
     ("eatventure", "🍔 Eatventure", "com.hwqgrhhjfd.idlefastfood", "lessmore_edff53fc", "🍔"),
     ("myappfree", "📱 MyAppFree", "myappfreesrl.com.myappfree", "loyaltydigital_10c54e02", "📱"),
+    ("supermarketaffairs", "🎮 Supermarket Affairs", "com.potatoplay.supermarketaffairs", "potatoplay_52168b49", "🎮"),
 ]
 
 for game in SINGULAR_GAMES:
@@ -600,7 +601,16 @@ def add_singular_events():
                    (maf[0], "3_cashout_s2s", "📱 3 Cashouts", "cashout"))
         c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
                    (maf[0], "7_cashout_s2s", "📱 7 Cashouts", "cashout"))
-        
+
+    # Supermarket Affairs - Merge
+    m_super = c_main.execute("SELECT id FROM games_singular WHERE name = 'supermarketaffairs'").fetchone()
+    if m_super: 
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                       (m_super[0], "sma_player_level_3", "📈 LEVEL3", "level"))
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                       (m_super[0], "sma_buy_sma000002", "💵 5$ purchase", "purchase"))
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                       (m_super[0], "sma_buy_sma000003", "💰 10$ purchase", "purchase"))
 
 add_singular_events()
 
