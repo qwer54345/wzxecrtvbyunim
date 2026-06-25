@@ -462,6 +462,7 @@ SINGULAR_GAMES = [
     ("eatventure", "🍔 Eatventure", "com.hwqgrhhjfd.idlefastfood", "lessmore_edff53fc", "🍔"),
     ("myappfree", "📱 MyAppFree", "myappfreesrl.com.myappfree", "loyaltydigital_10c54e02", "📱"),
     ("supermarketaffairs", "🎮 Supermarket Affairs", "com.potatoplay.supermarketaffairs", "potatoplay_52168b49", "🎮"),
+    ("mergerestaurant", "🍳 Merge Restaurant", "com.potatoplay.mergerestaurant", "potatoplay_52168b49", "🍳"),
 ]
 
 for game in SINGULAR_GAMES:
@@ -611,6 +612,12 @@ def add_singular_events():
                        (m_super[0], "sma_buy_sma000002", "💵 5$ purchase", "purchase"))
         c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
                        (m_super[0], "sma_buy_sma000003", "💰 10$ purchase", "purchase"))
+
+    # Merge Restaurant
+    m_rest = c_main.execute("SELECT id FROM games_singular WHERE name = 'mergerestaurant'").fetchone()
+    if m_rest:
+        c_main.execute("INSERT OR IGNORE INTO events_singular (game_id, event_name, display_name, event_type) VALUES (?, ?, ?, ?)", 
+                       (m_rest[0], "lv5_playerLevelUp", "🍴 Level 5", "level"))
 
 add_singular_events()
 
