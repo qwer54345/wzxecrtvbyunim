@@ -1137,14 +1137,13 @@ def get_proxy_for_user(user_id: int) -> Optional[Dict[str, str]]:
     if not proxy_info:
         return None
     proxy_type, proxy_host, proxy_port, proxy_user, proxy_pass = proxy_info
-    proxies = {}
-    if proxy_type in ("http", "https"):
-        auth = f"{proxy_user}:{proxy_pass}@" if proxy_user and proxy_pass else ""
-        proxies[proxy_type] = f"{proxy_type}://{auth}{proxy_host}:{proxy_port}"
-    elif proxy_type == "socks5":
-        auth = f"{proxy_user}:{proxy_pass}@" if proxy_user and proxy_pass else ""
-        proxies["socks5"] = f"socks5://{auth}{proxy_host}:{proxy_port}"
-    return proxies
+    auth = f"{proxy_user}:{proxy_pass}@" if proxy_user and proxy_pass else ""
+    if proxy_type == "socks5":
+        scheme = "socks5"
+    else:
+        scheme = "http"
+    proxy_url = f"{scheme}://{auth}{proxy_host}:{proxy_port}"
+    return {"http": proxy_url, "https": proxy_url}
 
 # ==================================================================================
 #                             إشعارات المزرعة
